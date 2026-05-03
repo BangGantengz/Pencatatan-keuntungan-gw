@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ツール (Tools) - 家計簿 (KeuanganKu)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .tool-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:10px}
+        .tool-title{color:var(--gold);font-size:.8rem;font-weight:700;margin-bottom:8px}
+        .warning-text{color:#ff4444;font-size:.6rem}
+        .success-text{color:#00e676;font-size:.6rem}
+    </style>
+</head>
+<body>
+    <div class="main-content">
+        <h2 style="color:#fff;font-size:.9rem;margin-bottom:6px">🧹 ツール (Tools)</h2>
+        <p style="color:var(--text-muted);font-size:.6rem;margin-bottom:8px">データ管理 (Manajemen Data)</p>
+
+        <div class="tool-card">
+            <div class="tool-title">🗑️ 古いデータ削除 (Hapus Data Lama)</div>
+            <p style="font-size:.6rem;color:#8b949e">指定された期間より前の取引データを削除します (Menghapus transaksi sebelum periode tertentu)</p>
+            <div class="row g-2 mb-2">
+                <div class="col-6"><label class="form-label">📅 年 (Tahun)</label><input type="number" id="hapusTahun" class="form-control" value="2025" min="2020" max="2099"></div>
+                <div class="col-6"><label class="form-label">📅 月 (Bulan)</label>
+                    <select id="hapusBulan" class="custom-select">
+                        <option value="1">1月 (Jan)</option><option value="2">2月 (Feb)</option><option value="3">3月 (Mar)</option>
+                        <option value="4">4月 (Apr)</option><option value="5">5月 (Mei)</option><option value="6">6月 (Jun)</option>
+                        <option value="7">7月 (Jul)</option><option value="8">8月 (Ags)</option><option value="9">9月 (Sep)</option>
+                        <option value="10">10月 (Okt)</option><option value="11">11月 (Nov)</option><option value="12">12月 (Des)</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="hapusDataLama()">🗑️ 古いデータを削除 (Hapus Data Lama)</button>
+            <div id="hapusStatus" class="mt-2" style="font-size:.55rem"></div>
+        </div>
+
+        <div class="tool-card">
+            <div class="tool-title">📊 データ統計 (Statistik Data)</div>
+            <div id="dataStats" style="font-size:.6rem;color:#e6e6e6"></div>
+            <button class="btn btn-info btn-sm mt-2" onclick="refreshStats()">🔄 更新 (Refresh)</button>
+        </div>
+
+        <div class="tool-card">
+            <div class="tool-title">💾 データバックアップ (Backup Data)</div>
+            <p style="font-size:.6rem;color:#8b949e">全てのデータをJSONファイルとしてエクスポート (Ekspor semua data ke file JSON)</p>
+            <button class="btn btn-success btn-sm" onclick="backupData()">💾 バックアップ (Backup)</button>
+            <button class="btn btn-warning btn-sm ms-2" onclick="restoreData()">🔄 リストア (Restore)</button>
+            <input type="file" id="restoreFile" style="display:none" accept=".json" onchange="prosesRestore(this)">
+            <div id="backupStatus" class="mt-2" style="font-size:.55rem"></div>
+        </div>
+
+        <div class="tool-card">
+            <div class="tool-title">⚠️ 全データリセット (Reset Semua Data)</div>
+            <p class="warning-text">⚠️ 注意: 全てのデータが完全に削除されます。元に戻せません！(Semua data akan dihapus permanen!)</p>
+            <button class="btn btn-outline-danger btn-sm" onclick="resetAllData()">🗑️ 全てリセット (Reset All)</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script>
+        function refreshStats() {
+            var trx = Storage.getData('keuangan_transaksi');
+            var hutang = Storage.getData('keuangan_hutang');
+            var totalTransaksi = trx.length;
+            var totalPemasukan = 0, totalPengeluaran = 0;
+            for (var i = 0; i < trx.length; i++) {
+                if (trx[i].jenis === 'pemasukan') totalPemasukan += safeNumber(trx[i].total);
+                else totalPengeluaran += safeNumber(trx[i].total);
+            }
+            var totalHutang = 0;
+            for (var i = 0; i < hutang.length; i++) totalHutang += safeNumber(hutang[i].jumlah);
+            
+            var html = '<div>📊 取引数 (Total Transaksi): <strong>' + totalTransaksi + '</strong>件</div>';
+            html += '<div>💰 総収入 (Total Pemasukan): <strong>' + formatYen(totalPemasukan) + '</strong></div>';
+            html += '<div>💸 総支出 (Total Pengeluaran): <strong>' + formatYen(totalPengeluaran) + '</strong></div>';
+            html += '<div>💳 総借金 (Total Hutang): <strong>' + formatYen(totalHutang) + '</strong></div>';
+            document.getElementById('dataStats').innerHTML = html;
+        }
+        
+        function hapusDataLama() {
+            var tahun = parseInt(document.getElementById('hapusTahun').value);
+            var bulan = parseInt(document.getElementById('hapusBulan').value);
+            if (!confirm('🗑️ ' + tahun + '年' + bulan + '月以前のデータを削除しますか？ (Hapus data sebelum ' + tahun + '/' + bulan + '?)')) return;
+            
+            var trx = Storage.getData('keuangan_transaksi');
+            var baru = [];
+            var terhapus = 0;
+            for (var i = 0; i < trx.length; i++) {
+                var it = trx[i];
+                if (!it.tanggal) { baru.push(it); continue; }
+                var parts = it.tanggal.split('-');
+                if (parts.length !== 3) { baru.push(it); continue; }
+                var tTahun = parseInt(parts[0]);
+                var tBulan = parseInt(parts[1]);
+                if (tTahun > tahun || (tTahun === tahun && tBulan >= bulan)) {
+                    baru.push(it);
+                } else {
+                    terhapus++;
+                }
+            }
+            if (Storage.saveData('keuangan_transaksi', baru)) {
+                document.getElementById('hapusStatus').innerHTML = '<span class="success-text">✅ ' + terhapus + '件のデータを削除しました (' + terhapus + ' data dihapus)</span>';
+                refreshStats();
+                if (window.refreshDashboard) setTimeout(function() { window.refreshDashboard(); }, 200);
+            } else {
+                document.getElementById('hapusStatus').innerHTML = '<span class="warning-text">❌ 削除に失敗しました (Gagal menghapus)</span>';
+            }
+        }
+        
+        function backupData() {
+            var data = {
+                transaksi: Storage.getData('keuangan_transaksi'),
+                hutang: Storage.getData('keuangan_hutang'),
+                budget: {}
+            };
+            for (var i = 2020; i <= 2030; i++) {
+                for (var j = 1; j <= 12; j++) {
+                    var key = 'keuangan_budget_' + i + '_' + j;
+                    var budgetData = Storage.getData(key);
+                    if (budgetData && budgetData.length > 0) {
+                        data.budget[key] = budgetData;
+                    }
+                }
+            }
+            var json = JSON.stringify(data, null, 2);
+            var blob = new Blob([json], { type: 'application/json' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'keuangan_backup_' + new Date().toISOString().slice(0,19).replace(/:/g, '-') + '.json';
+            a.click();
+            document.getElementById('backupStatus').innerHTML = '<span class="success-text">✅ バックアップ完了 (Backup selesai)</span>';
+            setTimeout(function() { document.getElementById('backupStatus').innerHTML = ''; }, 3000);
+        }
+        
+        function restoreData() {
+            document.getElementById('restoreFile').click();
+        }
+        
+        function prosesRestore(input) {
+            var file = input.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    var data = JSON.parse(e.target.result);
+                    if (data.transaksi) Storage.saveData('keuangan_transaksi', data.transaksi);
+                    if (data.hutang) Storage.saveData('keuangan_hutang', data.hutang);
+                    if (data.budget) {
+                        for (var key in data.budget) {
+                            localStorage.setItem(key, JSON.stringify(data.budget[key]));
+                        }
+                    }
+                    document.getElementById('backupStatus').innerHTML = '<span class="success-text">✅ リストア完了 (Restore selesai)</span>';
+                    refreshStats();
+                    if (window.refreshDashboard) setTimeout(function() { window.refreshDashboard(); }, 200);
+                } catch(err) {
+                    document.getElementById('backupStatus').innerHTML = '<span class="warning-text">❌ リストア失敗 (Restore gagal): ' + err.message + '</span>';
+                }
+            };
+            reader.readAsText(file);
+            input.value = '';
+        }
+        
+        function resetAllData() {
+            if (!confirm('⚠️⚠️⚠️ 全てのデータを完全に削除します！元に戻せません！ (Reset semua data? Tidak bisa dikembalikan!) ⚠️⚠️⚠️')) return;
+            if (!confirm('本当に削除しますか？ (Yakin ingin menghapus?)')) return;
+            
+            Storage.saveData('keuangan_transaksi', []);
+            Storage.saveData('keuangan_hutang', []);
+            
+            for (var i = 2020; i <= 2030; i++) {
+                for (var j = 1; j <= 12; j++) {
+                    var key = 'keuangan_budget_' + i + '_' + j;
+                    localStorage.removeItem(key);
+                }
+            }
+            
+            document.getElementById('backupStatus').innerHTML = '<span class="warning-text">🗑️ 全てのデータをリセットしました (Semua data direset)</span>';
+            refreshStats();
+            if (window.refreshDashboard) setTimeout(function() { window.refreshDashboard(); }, 200);
+        }
+        
+        refreshStats();
+    </script>
+</body>
+</html>
