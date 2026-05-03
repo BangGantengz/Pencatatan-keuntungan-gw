@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ダッシュボード (Dashboard) - 家計簿 (KeuanganKu)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="main-content">
+        <h2 style="color:#fff;font-size:.9rem;margin-bottom:6px;">📊 ダッシュボード (Dashboard)</h2>
+        
+        <div class="filter-row">
+            <span style="color:#ccc;font-size:.6rem;">📅 期間 (Periode):</span>
+            <select id="filterBulan" class="custom-select" style="width:auto;min-width:90px">
+                <option value="1">1月 (Jan)</option><option value="2">2月 (Feb)</option><option value="3">3月 (Mar)</option>
+                <option value="4">4月 (Apr)</option><option value="5">5月 (Mei)</option><option value="6">6月 (Jun)</option>
+                <option value="7">7月 (Jul)</option><option value="8">8月 (Ags)</option><option value="9">9月 (Sep)</option>
+                <option value="10">10月 (Okt)</option><option value="11">11月 (Nov)</option><option value="12">12月 (Des)</option>
+            </select>
+            <input type="number" id="filterTahun" class="form-control" style="width:65px" value="2026" min="2020" max="2099">
+            <button class="btn btn-warning btn-sm" onclick="refreshDashboard()">🔄 更新 (Refresh)</button>
+        </div>
+
+        <div class="summary-row">
+            <div class="summary-card income"><div style="font-size:1.5rem">💰</div><div style="color:#00e676;font-size:.65rem">総収入 (Pemasukan)</div><div style="color:#00e676;font-size:1.2rem;font-weight:800" id="totalPemasukan">¥0</div></div>
+            <div class="summary-card expense"><div style="font-size:1.5rem">💸</div><div style="color:#ff4444;font-size:.65rem">総支出 (Pengeluaran)</div><div style="color:#ff4444;font-size:1.2rem;font-weight:800" id="totalPengeluaran">¥0</div></div>
+        </div>
+
+        <div class="card balance-card"><div class="card-body" style="text-align:center"><div style="color:#fff;font-size:.8rem">💎 残高 & 予算状況 (Saldo & Budget)</div><div style="color:#58a6ff;font-size:1.6rem;font-weight:900" id="sisaSaldo">¥0</div><div id="budgetStatus" style="text-align:left;margin-top:8px"></div></div></div>
+
+        <div class="charts-grid">
+            <div class="card"><div class="card-body"><div class="card-title">📊 支出カテゴリー (Kategori Pengeluaran)</div><div class="chart-box"><canvas id="pieChart"></canvas></div></div></div>
+            <div class="card"><div class="card-body"><div class="card-title">📊 収入vs支出 (Pemasukan vs Pengeluaran)</div><div class="chart-box"><canvas id="barChart"></canvas></div></div></div>
+            <div class="card chart-full"><div class="card-body"><div class="card-title">📈 日次トレンド (Tren Harian)</div><div class="chart-box"><canvas id="lineChart"></canvas></div></div></div>
+            <div class="card chart-full"><div class="card-body"><div class="card-title">📅 月次収支比較 (Perbandingan Bulanan)</div><div class="chart-box-large"><canvas id="monthlyCompareChart"></canvas></div></div></div>
+        </div>
+
+        <div class="summary-row" style="margin-top:6px">
+            <div class="card"><div class="card-body">
+                <div class="card-title">🛒 よく買う商品 (Barang Sering Dibeli)</div>
+                <div id="barangSeringDibeli" style="font-size:.62rem;max-height:250px;overflow-y:auto"></div>
+            </div></div>
+            <div class="card"><div class="card-body">
+                <div class="card-title">💰 収入源詳細 (Detail Sumber Pemasukan)</div>
+                <div id="sumberPemasukan" style="font-size:.62rem;max-height:250px;overflow-y:auto"></div>
+            </div></div>
+        </div>
+
+        <div class="summary-row" style="margin-top:6px">
+            <div class="card"><div class="card-body"><div class="card-title">🏆 今月の支出TOP10 (Top 10 Pengeluaran)</div><div id="topItemsList"></div></div></div>
+            <div class="card"><div class="card-body"><div class="card-title">📊 前月比 (Perbandingan Bulan Lalu)</div><div id="monthCompareContent"></div></div></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded',function(){
+            var n=new Date();
+            document.getElementById('filterBulan').value=n.getMonth()+1;
+            document.getElementById('filterTahun').value=n.getFullYear();
+            if(typeof initDashboard==='function')initDashboard();
+            document.getElementById('filterBulan').addEventListener('change',function(){if(typeof refreshDashboard==='function')refreshDashboard()});
+            document.getElementById('filterTahun').addEventListener('change',function(){if(typeof refreshDashboard==='function')refreshDashboard()});
+        });
+    </script>
+</body>
+</html>
